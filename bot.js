@@ -87,21 +87,7 @@ client.on('message', msg => {
 					tBot.sendUsernameMissingError(msg, userMessage);
 					return;
 				}
-				msg.channel.send({
-					embed: {
-						title: 'Fetching information about ' + username,
-						description: 'Wait a moment...'
-					}
-				})
-					.then(msg => tBot.getUserInfo(username, function(message, err) {
-						msg.edit(message);
-						if (err) {
-							setTimeout(function() {
-								msg.delete();
-								userMessage.delete();
-							}, 5000)
-						}
-					}));
+				tBot.getUserInfo(username, msg);
 				break;
 			case 'inv':
 			case 'inventory':
