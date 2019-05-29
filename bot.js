@@ -1,4 +1,4 @@
-﻿const Discord = require('discord.js');
+const Discord = require('discord.js');
 const tBot = require('./bot-functions');
 const auth = require('./auth.json');
 const defs = require('./defines.json');
@@ -42,7 +42,7 @@ client.on('message', msg => {
 				if (userMessage.channel.type == 'dm') {
 					msg.reply('Hey, chill! Wait out a few seconds before running new commands.');
 				} else {
-					msg.reply('chill! Wait out a few seconds before running new commands.');
+					msg.reply('Chill! Wait out a few seconds before running new commands.');
 				}
 				ignoreWarned.push(msg.author.id);
 				setTimeout(function() {
@@ -287,6 +287,14 @@ client.on('message', msg => {
 			case 'halp':
 				msg.channel.send(tBot.printHelp());
 				break;
+			case 'wars':
+			case 'warinfo':
+				clan = args.join(" ");
+				if (typeof clan === "undefined") {
+					tBot.sendClanMissingError();
+					return;
+				}
+				tBot.getWars(clan, msg);
 			default:
 				ignore = false;
 				break;
