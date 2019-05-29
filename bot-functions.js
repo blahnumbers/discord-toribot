@@ -1,6 +1,9 @@
-﻿const request = require('request');
+const request = require('request');
+const fetch = require('node-fetch');
+const moment = require('moment');
 const Discord = require('discord.js');
 const defs = require('./defines.json');
+const ats = require('array-to-sentence');
 
 let formatter = new Intl.NumberFormat('en-US');
 let getTimeDiff = function(t) {
@@ -48,10 +51,23 @@ exports.sendUsernameMissingError = function(msg, userMessage) {
 	msg.channel.send({
 		embed: {
 			title: 'What am I supposed to search, huh?',
-			description: 'You have to enter player\'s name and not just the command!'
+			description: 'You have to enter a player\'s name and not just the command!'
 		}
-	})
-		.then(msg => function() {
+	}).then(msg => function() {
+			setTimeout(function() {
+				msg.delete();
+				userMessage.delete();
+			}, 5000);
+		});
+}
+
+exports.sendClanMissingError = function(msg, userMessage) {
+	msg.channel.send({
+		embed: {
+			title: 'What am I supposed to search, huh?',
+			description: 'You have to enter a clan\'s name and not just the command!'
+		}
+	}).then(msg => function() {
 			setTimeout(function() {
 				msg.delete();
 				userMessage.delete();
@@ -106,90 +122,61 @@ exports.getUserTcBalance = function(username, reply) {
 	});
 }
 
-exports.getUserInfo = function(username, reply) {
-	request('http://forum.toribash.com/tori_api.php?action=user_stats&username=' + escape(username), { json: true }, (err, res, body) => {
-		if (err || typeof body == 'undefined') {
-			reply({
-				embed: {
-					description: ':interrobang: **Error fetching data for ' + username + '.**\n...are you sure that\'s the proper username?',
-				}
-			}, true);
-			return;
-		}
+exports.getUserInfo = function(username, message) {
+	let embed = new Discord.RichEmbed()
+					.setTitle(`Fetching information about ${username}`)
+					.setDescription('Wait a moment...');
 
-		let msgEmbed = new Discord.RichEmbed();
-		msgEmbed.setTitle('Information about ' + body.username);
-		msgEmbed.setDescription('[Profile on forums](http://forum.toribash.com/member.php?u=' + body.userid + ')');
-		msgEmbed.setThumbnail('http://cache.toribash.com/forum/customavatars/avatar' + body.userid + '_' + body.avatarrevision + '.gif');
-		if (body.belttitle) {
-			body.belt = body.belttitle + ' Belt';
-		}
-		let msgFields = [
-			{ name: 'Belt', value: body.belt, inline: true },
-			{ name: 'Qi', value: formatter.format(body.qi), inline: true },
-			{ name: 'Balance', value: formatter.format(body.tc) + ' Toricredits', inline: true },
-			{ name: 'Join Date', value: unixTimestamp(body.joindate), inline: true }
-		];
-		let lastForumActivity = getTimeDiff(body.lastactivity);
-		if (lastForumActivity > 600) {
-			let lastOnline = getLastTime(lastForumActivity, 2);
-			if (!lastOnline) {
-				msgFields.push({ name: 'Last Forum Activity', value: unixTimestamp(body.lastactivity), inline: true });
-			} else {
-				msgFields.push({ name: 'Last Forum Activity', value: lastOnline, inline: true });
-			}
-		} else {
-			msgEmbed.setFooter('Online on forums', 'http://www.sclance.com/pngs/green-dot-png/green_dot_png_607938.png');
-		}
-		if (body.room) {
-			if (msgEmbed.footer) {
-				msgEmbed.footer.text += ' and in ' + body.room + ' room in game';
-			} else {
-				msgEmbed.setFooter('Online in ' + body.room + ' room in game', 'http://www.sclance.com/pngs/green-dot-png/green_dot_png_607938.png');
-			}
-		} else if (body.lastingame > 0) {
-			let lastIngameActivity = getTimeDiff(body.lastingame);
-			let lastOnline = getLastTime(lastIngameActivity, 2);
-			if (!lastOnline) {
-				msgFields.push({ name: 'Last Ingame Activity', value: unixTimestamp(body.lastingame), inline: true });
-			} else {
-				msgFields.push({ name: 'Last Ingame Activity', value: lastOnline, inline: true });
-			}
-		}
-		if (body.clanid > 0) {
-			msgFields.push({ name: 'Clan', value: '[' + body.clantag + ' ' + body.clanname + '](http://forum.toribash.com/clan.php?clanid=' + body.clanid + ')' });
-		}
-		msgFields.forEach(function(field) {
-			msgEmbed.addField(field.name, field.value, field.inline);
+	let sentMsg = message.channel.send(embed);
+
+    request.get(`http://forum.toribash.com/tori_api.php?action=user_stats&username=${username}`, (err, resp, body) => {
+		if (err && resp.statusCode !== 200) return message.channel.send('There was an error. Please try again.');
+		
+        let json = JSON.parse(body);
+
+        let belt = json.belttitle === null ? 'No Belt Title' : json.belttitle.replace(/\^[0-9][0-9]/gm, '').trim();
+
+        let ranks = [];
+
+        json.isES ? ranks.push('Event Squad') : null;
+        json.isMS ? ranks.push('Market Squad') : null;
+        json.isHS ? ranks.push('Help Squad') : null;
+        json.isCS ? ranks.push('Clan Squad') : null;
+        json.isSmod ? ranks.push('Super Moderator') : null;
+        json.isAdmin ? ranks.push('Administrator') : null;
+
+        let otherInfo = `
+• Staff: **${json.isES || json.isMS || json.isHS || json.isCS || json.isSmod || json.isAdmin ? `\\✔ | ${ranks.length > 1 ? 'Ranks' : 'Rank'}: ${ats(ranks)}` : '\\✘'}**
+• Banned: **${json.isBanned ? '\\✔' : '\\✘'}**
+• Ingame: **${json.room !== null ? `\\✔ | Room: ${json.room}` : '\\✘'}**
+• Join Date: **${moment.unix(json.joindate).format('ddd MMM Do YYYY @ hh:mm:ssa')} | ${moment.unix(json.joindate).fromNow()}**`;
+
+
+        let embed = new Discord.RichEmbed()
+            .setTitle(`${json.username}`)
+            .setColor('#ff1042')
+			.setURL(`https://forum.toribash.com/member.php?u=${json.userid}`)
+			.setThumbnail(`http://cache.toribash.com/forum/customavatars/avatar${json.userid}_${json.avatarrevision}.gif`)
+
+            .addField(`Forum Information`, `
+• Last Activity: **${moment.unix(json.lastactivity).format('ddd MMM Do YYYY @ hh:mm:ssa')} | ${moment.unix(json.lastactivity).fromNow()}**
+• Posts: **${parseInt(json.posts).toLocaleString()}**
+• Balance: **${parseInt(json.tc).toLocaleString()} TC**
+• User ID: **${json.userid}**
+• Clan ID: **${json.clanid !== -1 ? json.clanid : 'No Clan'}**`)
+
+            .addField(`Other Information`, otherInfo)
+
+            .addField(`Ingame Information`, `
+• Last Activity: **${moment.unix(json.lastingame).format('ddd MMM Do YYYY @ hh:mm:ssa')} | ${moment.unix(json.lastingame).fromNow()}**
+• QI: **${parseInt(json.qi).toLocaleString()}**
+• Belt: **${json.belt}**
+• Belt Title: **${belt}**
+• Clan Name and Tag: **${json.clanname !== null ? `${json.clanname} ${json.clantag}` : 'No Clan'}**`);
+		sentMsg.then(msg => {
+			msg.edit(embed);
 		});
-		if (body.isBanned) {
-			msgEmbed.setFooter('This user is currently banned. Naughty!', 'https://images.vexels.com/media/users/3/137001/isolated/preview/053eda8762b9c1571b407f751f359138-tombstone-rip-circle-icon-by-vexels.png');
-		}
-		if (body.isAdmin || body.isMS || body.isES || body.isHS || body.isCS) {
-			//msgEmbed.setImage('http://cache.toribash.com/forum/customavatars/avatar5939996_3.gif');
-		}
-		if (body.isHS) {
-			msgEmbed.setColor([150, 150, 150]);
-		}
-		if (body.isMS) {
-			msgEmbed.setColor([0, 128, 0]);
-		}
-		if (body.isCS) {
-			msgEmbed.setColor([0, 0, 0]);
-		}
-		if (body.isES) {
-			msgEmbed.setColor([105, 0, 105]);
-		}
-		if (body.isSmod) {
-			msgEmbed.setColor([0, 0, 255]);
-		}
-		if (body.isAdmin) {
-			msgEmbed.setColor([255, 0, 0]);
-		}
-		reply({
-			embed: msgEmbed
-		})
-	});
+    });
 }
 
 exports.getUserInventoryInfo = function(username, mode, reply) {
@@ -430,7 +417,7 @@ exports.printInventoryPage = function(invinfo, page) {
 let printInventorySingleItemInfo = function(item, stackid) {
 	let msgEmbed = new Discord.RichEmbed();
 	let itemName = item.itemname;
-	if (item.itemid == 1458) {
+	if (item.itemid === 1458) {
 		itemName += ': ' + item.items[0].setname;
 	}
 	msgEmbed.addField('Item Name', itemName);
@@ -510,6 +497,7 @@ exports.printHelp = function() {
 	msgEmbed.setDescription('Command arguments are listed as [arg]. Optional arguments have ? prefix.');
 	let commandsGeneral = '`' + defs.COMMAND_PREFIX + 'tc [username]` - view player\'s TC balance\n';
 	commandsGeneral += '`' + defs.COMMAND_PREFIX + 'info [username]` - view info about a player\n';
+	commandsGeneral += '`' + defs.COMMAND_PREFIX + 'wars [clan]` - view last 10 wars from specified clan\n';
 	msgEmbed.addField('General info commands', commandsGeneral);
 	let commandsInventory = '`' + defs.COMMAND_PREFIX + 'inv [username] ?[a|d|m]` - load player\'s inventory for viewing\n';
 	commandsInventory += '`' + defs.COMMAND_PREFIX + 'invpg [page]` - view loaded inventory page\n';
@@ -521,4 +509,146 @@ exports.printHelp = function() {
 	return {
 		embed: msgEmbed
 	}
+}
+
+exports.getWars = async function(clan, message) {
+	clan = clan.replace(/\s/g, '%20');
+	if (!clan) return message.channel.send('Uhh, could you provide a clan name next time?');
+	
+	let clans = {};
+	let wars = [];
+	let fightLog = '';
+
+	let embed = new Discord.RichEmbed()
+        .setColor('#ff1042')
+		.setDescription('Retrieving data... This could take a few seconds.');
+		
+	let sentMsg = message.channel.send(embed);
+
+	let json = await fetch(`http://forum.toribash.com/clan_war_json.php?do=get_wars&name=${clan}`).then(res => res.json());
+
+    if (json.err === "Incorrect clanid") {
+        embed.setDescription('Sorry, that clan does not exist. Are you sure you entered the correct name?')
+        return sentMsg.then(msg => msg.edit(embed));
+    }
+
+    json = json.slice(0, 10);
+
+    for (let i = 0; i < json.length; i++) {
+        let c = await fetch(`http://forum.toribash.com/clan_war_json.php?do=get_war_info&warid=${json[i].warid}`).then(res => res.json());
+        await wars.push(c);
+    }
+
+    let page = 1;
+
+    let size = 1; let pages = [];
+    for (let i = 0; i < wars.length; i += size) pages.push(wars.slice(i, i + size));
+    
+    let numberOfPages = Math.floor((wars.length + size - 1) / size);
+
+	embed.setFooter(`Page: ${page}/${numberOfPages}`);
+	
+	sentMsg.then(async msg => {
+        msg.edit(embed);
+
+        embed.description = '';
+
+        for (let i of pages[page - 1]) {
+            let start = new Date(i.start_date);
+            let end = new Date(i.end_date);
+
+            let duration = `${moment.duration(end - start).hours()} ${moment.duration(end - start).hours() !== 1 ? 'hours' : 'hour'}, ${moment.duration(end - start).minutes()} minutes`;
+
+            clans[parseInt(i.host_clan.clanid)] = i.host_clan.btag;
+            clans[parseInt(i.opponent_clan.clanid)] = i.opponent_clan.btag;
+
+            for (let match of i.games) fightLog += `${clans[match.winner.clan]} ${match.winner.name} BEAT ${match.loser.name} ${clans[match.loser.clan]}\n`;
+            
+            embed
+                .addField('Host Clan Information', `• Tag + Name: **${i.host_clan.btag} ${i.host_clan.name}**\n• Clan ID: **${i.host_clan.clanid}**\n• Score: **${i.host_clan.score}**`, true).addField('Opponent Clan Information', `• Tag + Name: **${i.opponent_clan.btag} ${i.opponent_clan.name}**\n• Clan ID: **${i.opponent_clan.clanid}**\n• Score: **${i.opponent_clan.score}**`, true)    
+                .addField('War Information', `• War ID: **${i.warid}**\n• Duration: **${duration}**\n• Total Rounds: **${i.games.length}**`, true)
+                .addBlankField(true)
+                .addField('War Fight Log', `\`\`\`${fightLog}\`\`\``, true);
+        }
+
+        await msg.edit(embed);
+
+        await msg.react('⏪');
+        await msg.react('❌');
+        await msg.react('⏩');
+
+        const backwardsFilter = (reaction, user) => reaction.emoji.name === '⏪' && user.id === message.author.id;
+        const forwardsFilter = (reaction, user) => reaction.emoji.name === '⏩' && user.id === message.author.id; 
+        const cancelFilter = (reaction, user) => reaction.emoji.name === '❌' && user.id === message.author.id; 
+        
+        const backwards = msg.createReactionCollector(backwardsFilter, { time: 60000 }); 
+        const forwards = msg.createReactionCollector(forwardsFilter, { time: 60000 }); 
+        const cancel = msg.createReactionCollector(cancelFilter, { time: 60000 });
+
+        backwards.on('collect', async r => {
+            await r.remove(r.users.get(message.author.id));
+            if (page === 1) return;
+            page--;
+            embed.fields.length = 0;
+
+            for (let i of pages[page - 1]) {
+                let start = new Date(i.start_date);
+                let end = new Date(i.end_date);
+    
+                let duration = `${moment.duration(end - start).hours()} hours, ${moment.duration(end - start).minutes()} minutes`;
+    
+                clans[parseInt(i.host_clan.clanid)] = i.host_clan.btag;
+                clans[parseInt(i.opponent_clan.clanid)] = i.opponent_clan.btag;
+    
+                let fightLog = '';
+    
+                for (let match of i.games) fightLog += `${clans[match.winner.clan]} ${match.winner.name} BEAT ${match.loser.name} ${clans[match.loser.clan]}\n`;
+                
+                embed
+                    .addField('Host Clan Information', `• Tag + Name: **${i.host_clan.btag} ${i.host_clan.name}**\n• Clan ID: **${i.host_clan.clanid}**\n• Score: **${i.host_clan.score}**`, true)
+                    .addField('Opponent Clan Information', `• Tag + Name: **${i.opponent_clan.btag} ${i.opponent_clan.name}**\n• Clan ID: **${i.opponent_clan.clanid}**\n• Score: **${i.opponent_clan.score}**`, true)    
+                    .addField('War Information', `• War ID: **${i.warid}**\n• Duration: **${duration}**\n• Total Rounds: **${i.games.length}**`, true)
+                    .addBlankField(true)
+                    .addField('War Fight Log', `\`\`\`${fightLog}\`\`\``, true);
+            }
+
+            embed.setFooter(`Page: ${page}/${numberOfPages}`);
+            
+            await msg.edit(embed);
+        });
+        
+        forwards.on('collect', async r => {
+            await r.remove(r.users.get(message.author.id));
+            if (page === pages.length) return;
+            page++;
+            embed.fields.length = 0;
+
+            for (let i of pages[page - 1]) {
+                let start = new Date(i.start_date);
+                let end = new Date(i.end_date);
+    
+                let duration = `${moment.duration(end - start).hours()} hours, ${moment.duration(end - start).minutes()} minutes`;
+    
+                clans[parseInt(i.host_clan.clanid)] = i.host_clan.btag;
+                clans[parseInt(i.opponent_clan.clanid)] = i.opponent_clan.btag;
+    
+                let fightLog = '';
+    
+                for (let match of i.games) fightLog += `${clans[match.winner.clan]} ${match.winner.name} BEAT ${match.loser.name} ${clans[match.loser.clan]}\n`;
+                
+                embed
+                    .addField('Host Clan Information', `• Tag + Name: **${i.host_clan.btag} ${i.host_clan.name}**\n• Clan ID: **${i.host_clan.clanid}**\n• Score: **${i.host_clan.score}**`, true)
+                    .addField('Opponent Clan Information', `• Tag + Name: **${i.opponent_clan.btag} ${i.opponent_clan.name}**\n• Clan ID: **${i.opponent_clan.clanid}**\n• Score: **${i.opponent_clan.score}**`, true)    
+                    .addField('War Information', `• War ID: **${i.warid}**\n• Duration: **${duration}**\n• Total Rounds: **${i.games.length}**`, true)
+                    .addBlankField(true)
+                    .addField('War Fight Log', `\`\`\`${fightLog}\`\`\``, true);
+            }
+
+            embed.setFooter(`Page: ${page}/${numberOfPages}`);
+
+            await msg.edit(embed);
+        });
+
+        cancel.on('collect', () => msg.delete());
+    });
 }
