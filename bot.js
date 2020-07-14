@@ -283,6 +283,10 @@ client.on('message', msg => {
 			case 'swansong':
 				msg.channel.send('https://www.youtube.com/watch?v=rBfHhFKZ2iU');
 				break;
+			case 'yourattempts':
+				username = typeof args[0] == "undefined" ? 'itemp' : args[0];
+				msg.channel.send(username + ", your attempts to sound witty and sarcastic are laughable - talking is not your strong suit, and it looks all the more weak when you're almost choking on your own venom(which seems to usually happen in my presence). Your words have no meaning, because you're only imitating. You're shallow, hypocritical and spiteful. So take my not very friendly, but genuine advice: you'd do yourself a favor if you talked less, because it would mean less opportunities for you to embarass yourself");
+				break;
 			case 'help':
 			case 'halp':
 				msg.channel.send(tBot.printHelp());

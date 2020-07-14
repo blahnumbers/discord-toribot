@@ -124,10 +124,14 @@ exports.getUserInfo = function(username, reply) {
 		if (body.belttitle) {
 			body.belt = body.belttitle + ' Belt';
 		}
+		if (typeof body.st == 'undefined') {
+			body.st = 0;
+		}
 		let msgFields = [
 			{ name: 'Belt', value: body.belt, inline: true },
 			{ name: 'Qi', value: formatter.format(body.qi), inline: true },
-			{ name: 'Balance', value: formatter.format(body.tc) + ' Toricredits', inline: true },
+			{ name: 'Toricredits', value: formatter.format(body.tc) + ' TC', inline: true },
+			{ name: 'Shiai Tokens', value: formatter.format(body.st) + ' ST', inline: true },
 			{ name: 'Join Date', value: unixTimestamp(body.joindate), inline: true }
 		];
 		let lastForumActivity = getTimeDiff(body.lastactivity);
