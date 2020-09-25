@@ -60,7 +60,7 @@ exports.sendUsernameMissingError = function(msg, userMessage) {
 }
 
 exports.getUserTcBalance = function(username, reply) {
-	request('http://forum.toribash.com/tori_api.php?action=user_tc&username=' + escape(username), { json: true }, (err, res, body) => {
+	request('https://forum.toribash.com/tori_api.php?action=user_tc&username=' + escape(username), { json: true }, (err, res, body) => {
 		if (err || typeof body == 'undefined') {
 			reply({
 				embed: {
@@ -107,7 +107,7 @@ exports.getUserTcBalance = function(username, reply) {
 }
 
 exports.getUserInfo = function(username, reply) {
-	request('http://forum.toribash.com/tori_api.php?action=user_stats&username=' + escape(username), { json: true }, (err, res, body) => {
+	request('https://forum.toribash.com/tori_api.php?action=user_stats&username=' + escape(username), { json: true }, (err, res, body) => {
 		if (err || typeof body == 'undefined') {
 			reply({
 				embed: {
@@ -119,8 +119,8 @@ exports.getUserInfo = function(username, reply) {
 
 		let msgEmbed = new Discord.RichEmbed();
 		msgEmbed.setTitle('Information about ' + body.username);
-		msgEmbed.setDescription('[Profile on forums](http://forum.toribash.com/member.php?u=' + body.userid + ')');
-		msgEmbed.setThumbnail('http://cache.toribash.com/forum/customavatars/avatar' + body.userid + '_' + body.avatarrevision + '.gif');
+		msgEmbed.setDescription('[Profile on forums](https://forum.toribash.com/member.php?u=' + body.userid + ')');
+		msgEmbed.setThumbnail('https://cache.toribash.com/forum/customavatars/avatar' + body.userid + '_' + body.avatarrevision + '.gif');
 		if (body.belttitle) {
 			body.belt = body.belttitle + ' Belt';
 		}
@@ -143,13 +143,13 @@ exports.getUserInfo = function(username, reply) {
 				msgFields.push({ name: 'Last Forum Activity', value: lastOnline, inline: true });
 			}
 		} else {
-			msgEmbed.setFooter('Online on forums', 'http://www.sclance.com/pngs/green-dot-png/green_dot_png_607938.png');
+			msgEmbed.setFooter('Online on forums', 'https://puu.sh/Gwhis/b5144b0056.png');
 		}
 		if (body.room) {
 			if (msgEmbed.footer) {
 				msgEmbed.footer.text += ' and in ' + body.room + ' room in game';
 			} else {
-				msgEmbed.setFooter('Online in ' + body.room + ' room in game', 'http://www.sclance.com/pngs/green-dot-png/green_dot_png_607938.png');
+				msgEmbed.setFooter('Online in ' + body.room + ' room in game', 'https://puu.sh/Gwhis/b5144b0056.png');
 			}
 		} else if (body.lastingame > 0) {
 			let lastIngameActivity = getTimeDiff(body.lastingame);
@@ -161,16 +161,17 @@ exports.getUserInfo = function(username, reply) {
 			}
 		}
 		if (body.clanid > 0) {
-			msgFields.push({ name: 'Clan', value: '[' + body.clantag + ' ' + body.clanname + '](http://forum.toribash.com/clan.php?clanid=' + body.clanid + ')' });
+			msgFields.push({ name: 'Clan', value: '[' + body.clantag + ' ' + body.clanname + '](https://forum.toribash.com/clan.php?clanid=' + body.clanid + ')' });
 		}
 		msgFields.forEach(function(field) {
 			msgEmbed.addField(field.name, field.value, field.inline);
 		});
 		if (body.isBanned) {
-			msgEmbed.setFooter('This user is currently banned. Naughty!', 'https://images.vexels.com/media/users/3/137001/isolated/preview/053eda8762b9c1571b407f751f359138-tombstone-rip-circle-icon-by-vexels.png');
+			msgEmbed.setFooter('This user is currently banned. Naughty!', 'https://puu.sh/GwhoY/e84b9ed9aa.png');
 		}
 		if (body.isAdmin || body.isMS || body.isES || body.isHS || body.isCS) {
-			//msgEmbed.setImage('http://cache.toribash.com/forum/customavatars/avatar5939996_3.gif');
+			msgEmbed.setFooter('This user is a staff member', 'https://cache.toribash.com/forum/images/banana/bananalama.gif');
+			//msgEmbed.setImage('https://cache.toribash.com/forum/customavatars/avatar5939996_3.gif');
 		}
 		if (body.isHS) {
 			msgEmbed.setColor([150, 150, 150]);
@@ -197,7 +198,7 @@ exports.getUserInfo = function(username, reply) {
 }
 
 exports.getUserInventoryInfo = function(username, mode, reply) {
-	request('http://forum.toribash.com/tori_api.php?action=user_inventory&mode=' + mode + '&username=' + escape(username), { json: true }, (err, res, body) => {
+	request('https://forum.toribash.com/tori_api.php?action=user_inventory&mode=' + mode + '&username=' + escape(username), { json: true }, (err, res, body) => {
 		if (err || typeof body != 'object') {
 			reply({
 				embed: {
@@ -287,7 +288,7 @@ exports.getUserInventoryInfo = function(username, mode, reply) {
 			{
 				embed: {
 					title: body.username + '\'s inventory information',
-					description: '[View inventory on forums](http://forum.toribash.com/tori_inventory.php?userid=' + body.userid + '&sid=' + (mode > 0 ? (-mode + 1) : mode) + ')',
+					description: '[View inventory on forums](https://forum.toribash.com/tori_inventory.php?userid=' + body.userid + '&sid=' + (mode > 0 ? (-mode + 1) : mode) + ')',
 					fields: [
 						{ name: 'Total Items', value: body.itemstotal, inline: true },
 						{ name: 'Pages', value: pages, inline: true },
@@ -442,7 +443,7 @@ let printInventorySingleItemInfo = function(item, stackid) {
 		msgEmbed.addField('Item Description', item.description);
 	}
 	if (item.image.match(/.+\.[a-z]+/gm)) {
-		msgEmbed.setThumbnail('http://cache.toribash.com/forum/torishop/images/items/' + item.image);
+		msgEmbed.setThumbnail('https://cache.toribash.com/forum/torishop/images/items/' + item.image);
 	}
 	msgEmbed.addField('Games played', item.items[stackid].gamesplayed, true);
 	if (typeof item.items[stackid].flameid !== 'undefined') {
