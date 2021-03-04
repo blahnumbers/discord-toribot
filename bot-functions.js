@@ -117,7 +117,7 @@ exports.getUserInfo = function(username, reply) {
 			return;
 		}
 
-		let msgEmbed = new Discord.RichEmbed();
+		let msgEmbed = new Discord.MessageEmbed();
 		msgEmbed.setTitle('Information about ' + body.username);
 		msgEmbed.setDescription('[Profile on forums](https://forum.toribash.com/member.php?u=' + body.userid + ')');
 		msgEmbed.setThumbnail('https://cache.toribash.com/forum/customavatars/avatar' + body.userid + '_' + body.avatarrevision + '.gif');
@@ -433,7 +433,7 @@ exports.printInventoryPage = function(invinfo, page) {
 }
 
 let printInventorySingleItemInfo = function(item, stackid) {
-	let msgEmbed = new Discord.RichEmbed();
+	let msgEmbed = new Discord.MessageEmbed();
 	let itemName = item.itemname;
 	if (item.itemid == 1458) {
 		itemName += ': ' + item.items[0].setname;
@@ -510,7 +510,7 @@ exports.inventoryUserNotCachedError = function() {
 }
 
 exports.printHelp = function() {
-	let msgEmbed = new Discord.RichEmbed();
+	let msgEmbed = new Discord.MessageEmbed();
 	msgEmbed.setTitle('List of available commands');
 	msgEmbed.setDescription('Command arguments are listed as [arg]. Optional arguments have ? prefix.');
 	let commandsGeneral = '`' + defs.COMMAND_PREFIX + 'tc [username]` - view player\'s TC balance\n';

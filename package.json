@@ -1,11 +1,11 @@
 {
-	"name": "ToriBot",
-	"version": "0.1.0",
-	"description": "Toribash Bot",
+	"name": "toribot",
+	"version": "0.1.2",
+	"description": "Toribash Discord Bot",
 	"main": "bot.js",
 	"author": "sir",
 	"dependencies": {
-		"discord.js": "^11.4.2",
+		"discord.js": "^12.5.1",
 		"request": "^2.88.0"
 	}
 }

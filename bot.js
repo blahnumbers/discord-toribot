@@ -10,6 +10,8 @@ let ignoreWarned = [];
 let invCachedUsers = [];
 let invCachedInfo = [];
 
+let autoBroadcastChannels = ['741917244904308738'];
+
 client.on('ready', () => {
 	console.log('Connected');
 	console.log('Logged in as: ' + client.user.username + ' (id ' + client.user.id + ')');
@@ -17,6 +19,13 @@ client.on('ready', () => {
 });
 
 client.on('message', msg => {
+	//console.log('Got message in ' + msg.channel.id);
+	if (autoBroadcastChannels.indexOf(msg.channel.id + '') !== -1) {
+		if (msg.crosspostable) {
+			console.log('Got a crosspostable message in #' + msg.channel.name + ': ' + msg.content);
+			msg.crosspost().then(() => console.log('Crossposted message from #' + msg.channel.name));
+		}
+	}
 	if (msg.author.bot) {
 		return;
 	}
