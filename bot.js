@@ -10,7 +10,7 @@ let ignoreWarned = [];
 let invCachedUsers = [];
 let invCachedInfo = [];
 
-let autoBroadcastChannels = ['741917244904308738'];
+let autoBroadcastChannels = ['385913484392529922'];
 
 client.on('ready', () => {
 	console.log('Connected');
